@@ -181,7 +181,7 @@ let execute_phrase print_outcome ppf phr =
   Toploop.execute_phrase print_outcome ppf phr
 #endif
 
-#if OCAML_VERSION < (4, 14, 0)
+#if OCAML_VERSION < (5, 0, 0)
 let std_err = Format.err_formatter
 
 let patch_directive name directive =
@@ -200,7 +200,9 @@ let dir_use ppf name =
 
 let mdx_use = patch_directive "use" (Directive_string (dir_use std_err))
 
-let mdx_install_printer = patch_directive "install_printer" (Directive_ident (Topdirs.dir_install_printer std_err))
+let mdx_install_printer =
+  ignore @@ failwith "HELLO";
+  patch_directive "install_printer" (Directive_ident (Topdirs.dir_install_printer std_err))
 let mdx_remove_printer = patch_directive "remove_printer" (Directive_ident (Topdirs.dir_remove_printer std_err))
 #endif
 
@@ -248,7 +250,7 @@ let mdx_load_rec = patch_directive "load_rec" (Directive_string (dir_load_rec st
 
 let redirect_directive directive =
   match directive with
-#if OCAML_VERSION < (4, 14, 0)
+#if OCAML_VERSION < (5, 0, 0)
   | "load" -> mdx_load
   | "load_rec" -> mdx_load_rec
   | "use" -> mdx_use
