@@ -9,17 +9,21 @@ let loc ~start ~end_ =
   Location.{loc_start = start; loc_end = end_; loc_ghost = false}
 }
 
-let eol = '\n' | eof
+let eol = '\n' | "\r\n" | eof
 let ws = ' ' | '\t'
+
+let not_eol = [^'\n' '\r']
+let not_ws = [^' ' '\t']
+let not_ws_or_eol = [^' ' '\t' '\n' '\r']
 
 rule text section = parse
   | eof { [] }
-  | ("#"+ as n) " " ([^'\n']* as str) eol
+  | ("#"+ as n) " " (not_eol* as str) eol
       { let section = (String.length n, str) in
         newline lexbuf;
         `Section section :: text (Some section) lexbuf }
-  | ( "<!--" ws* "$MDX" ws* ([^' ' '\n']* as label_cmt) ws* "-->" ws* eol? )?
-      "```" ([^' ' '\n']* as header) ws* ([^'\n']* as legacy_labels) eol
+  | ( "<!--" ws* "$MDX" ws* (not_ws* as label_cmt) ws* "-->" ws* eol? )?
+      "```" (not_ws_or_eol* as header) ws* (not_eol* as legacy_labels) eol
       { let start = Lexing.lexeme_start_p lexbuf in
         newline lexbuf;
         (match label_cmt with
@@ -45,12 +49,12 @@ rule text section = parse
             ~legacy_labels ~errors
         in
         `Block block :: text section lexbuf }
-  | "<!--" ws* "$MDX" ws* ([^' ' '\n']* as labels) ws* "-->" ws* eol
+  | "<!--" ws* "$MDX" ws* (not_ws* as labels) ws* "-->" ws* eol
       { let loc = Location.curr lexbuf in
         newline lexbuf;
         let block = Block.Raw.make_include ~loc ~section ~labels in
         `Block block :: text section lexbuf }
-  | ([^'\n']* as str) eol
+  | (not_eol* as str) eol
       { newline lexbuf;
         let str = String.append str "\n" in
         `Text str :: text section lexbuf }
@@ -68,11 +72,11 @@ and error_block = parse
 
 and cram_text section = parse
   | eof { [] }
-  | ("#"+ as n) " " ([^'\n']* as str) eol
+  | ("#"+ as n) " " (not_eol* as str) eol
       { let section = (String.length n, str) in
         newline lexbuf;
         `Section section :: cram_text (Some section) lexbuf }
-  | ("  " as ws) ([^'\n']* as first_line) eol
+  | ("  " as ws) (not_eol* as first_line) eol
       { let start = Lexing.lexeme_start_p lexbuf in
         newline lexbuf;
         let header = "sh" in
@@ -89,7 +93,7 @@ and cram_text section = parse
         in
         `Block block
         :: (if requires_empty_line then `Text "\n" :: rest else rest) }
-  | "<-- non-deterministic" ws* ([^'\n']* as choice) eol
+  | "<-- non-deterministic" ws* (not_eol* as choice) eol
       { let start = Lexing.lexeme_start_p lexbuf in
         newline lexbuf;
         let header = "sh" in
@@ -105,7 +109,7 @@ and cram_text section = parse
         in
         `Block block
         :: (if requires_empty_line then `Text "\n" :: rest else rest) }
-  | ([^'\n']* as str) eol
+  | (not_eol* as str) eol
       { newline lexbuf;
         let str = String.append str "\n" in
         `Text str :: cram_text section lexbuf }
@@ -113,7 +117,7 @@ and cram_text section = parse
 and cram_block = parse
   | eof { false, [] }
   | eol { newline lexbuf; true, [] }
-  | ("  " as ws) ([^'\n'] * as str) eol
+  | ("  " as ws) (not_eol * as str) eol
       { let requires_empty_line, lst = cram_block lexbuf in
         newline lexbuf;
         requires_empty_line, (String.append ws str) :: lst }
