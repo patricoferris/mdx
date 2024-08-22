@@ -342,7 +342,7 @@ let run_exn ~non_deterministic ~silent_eval ~record_backtrace ~syntax ~silent
     if Block.is_active ?section t then
       match Block.value t with
       | Raw _ -> print_block ()
-      | Include { file_included; file_kind = Fk_ocaml { part_included } } ->
+      | Include { file_included; file_kind = (Fk_ocaml { part_included } | Fk_fstar { part_included }) } ->
           assert (syntax <> Some Cram);
           update_file_or_block ?syntax ?root ppf file file_included t
             part_included

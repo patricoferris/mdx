@@ -53,6 +53,7 @@ type include_other_file = { header : Header.t option }
 
 type include_file_kind =
   | Fk_ocaml of include_ocaml_file
+  | Fk_fstar of include_ocaml_file
   | Fk_other of include_other_file
 
 type include_value = {

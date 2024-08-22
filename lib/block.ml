@@ -90,6 +90,7 @@ type include_other_file = { header : Header.t option }
 
 type include_file_kind =
   | Fk_ocaml of include_ocaml_file
+  | Fk_fstar of include_ocaml_file
   | Fk_other of include_other_file
 
 type include_value = { file_included : string; file_kind : include_file_kind }
@@ -127,6 +128,7 @@ let header t =
   | Cram { language; _ } -> Some (Header.Shell language)
   | Toplevel _ -> Some Header.OCaml
   | Include { file_kind = Fk_ocaml _; _ } -> Some Header.OCaml
+  | Include { file_kind = Fk_fstar _; _ } -> Some (Header.Other "fstar")
   | Include { file_kind = Fk_other b; _ } -> b.header
 
 let dump_value ppf = function
@@ -427,6 +429,9 @@ let mk_include ~loc ~config ~header ~errors =
       match header with
       | Some Header.OCaml ->
           let file_kind = Fk_ocaml { part_included = part } in
+          Ok (Include { file_included; file_kind })
+      | Some Header.Other "fstar" ->
+          let file_kind = Fk_fstar { part_included = part } in
           Ok (Include { file_included; file_kind })
       | _ -> (
           match part with
